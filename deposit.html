@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Deposit — Hill Miner</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .mobile-topbar {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 60;
+    }
+    .mobile-topbar .logo { display: flex; align-items: center; gap: 8px; font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+    .mobile-topbar .logo .logo-icon { width: 28px; height: 28px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; }
+    #sidebar-toggle { background: none; border: none; color: var(--text-primary); font-size: 1.3rem; cursor: pointer; }
+    @media (max-width: 768px) { .mobile-topbar { display: flex; } }
+
+    .deposit-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    /* Method Tabs */
+    .method-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .method-tab {
+      padding: 10px 18px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .method-tab.active {
+      background: rgba(0,229,255,0.1);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .method-tab:hover { border-color: rgba(0,229,255,0.4); color: var(--accent); }
+
+    /* Bank Details Card */
+    .bank-details-card {
+      background: linear-gradient(135deg, rgba(0,229,255,0.06), rgba(124,58,237,0.06));
+      border: 1px solid rgba(0,229,255,0.2);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .bank-details-card h4 {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--accent);
+      margin-bottom: 14px;
+      font-weight: 700;
+    }
+    .bank-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(30,42,64,0.5);
+      font-size: 0.88rem;
+    }
+    .bank-row:last-child { border-bottom: none; }
+    .bank-row .key { color: var(--text-muted); }
+    .bank-row .val { font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
+    .copy-btn {
+      background: none; border: none;
+      color: var(--accent); cursor: pointer;
+      font-size: 0.75rem; padding: 2px 6px;
+      border: 1px solid rgba(0,229,255,0.3);
+      border-radius: 4px;
+      transition: all var(--transition);
+    }
+    .copy-btn:hover { background: rgba(0,229,255,0.1); }
+
+    /* Crypto Details */
+    .crypto-card {
+      background: linear-gradient(135deg, rgba(124,58,237,0.08), rgba(0,229,255,0.05));
+      border: 1px solid rgba(124,58,237,0.25);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .crypto-card h4 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.8px; color: #a78bfa; margin-bottom: 12px; font-weight: 700; }
+    .crypto-addr {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-family: monospace;
+      font-size: 0.78rem;
+      color: var(--accent);
+      word-break: break-all;
+      margin-bottom: 8px;
+    }
+    .rate-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(16,185,129,0.1);
+      border: 1px solid rgba(16,185,129,0.3);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 0.78rem;
+      color: var(--accent3);
+      font-weight: 600;
+      margin-top: 6px;
+    }
+
+    /* Upload Area */
+    .upload-area {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      text-align: center;
+      cursor: pointer;
+      transition: all var(--transition);
+      position: relative;
+    }
+    .upload-area:hover, .upload-area.dragover {
+      border-color: var(--accent);
+      background: rgba(0,229,255,0.04);
+    }
+    .upload-area input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+    .upload-area .upload-icon { font-size: 2rem; margin-bottom: 8px; }
+    .upload-area p { font-size: 0.85rem; color: var(--text-muted); }
+    .upload-area .file-name { font-size: 0.82rem; color: var(--accent3); margin-top: 6px; }
+
+    /* Steps */
+    .steps-list { list-style: none; counter-reset: step; }
+    .steps-list li {
+      counter-increment: step;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(30,42,64,0.4);
+      font-size: 0.88rem;
+      color: var(--text-dim);
+    }
+    .steps-list li:last-child { border-bottom: none; }
+    .steps-list li::before {
+      content: counter(step);
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #000;
+      flex-shrink: 0;
+    }
+
+    /* History */
+    .history-section { margin-top: 28px; }
+
+    @media (max-width: 900px) { .deposit-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div id="toast-container"></div>
+
+<div class="mobile-topbar">
+  <div class="logo"><div class="logo-icon">⛏</div> HillMiner</div>
+  <button id="sidebar-toggle">☰</button>
+</div>
+
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo"><div class="logo-icon">⛏</div> HillMiner</div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html"><span class="nav-icon">📊</span> Dashboard</a>
+      <a href="deposit.html" class="active"><span class="nav-icon">💳</span> Deposit</a>
+      <a href="withdraw.html"><span class="nav-icon">💸</span> Withdraw</a>
+      <a href="https://t.me/+QzZRWBo6fQVmZWE1" target="_blank"><span class="nav-icon">💬</span> Support</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:10px;" id="sidebar-user-info">Loading...</div>
+      <button class="btn btn-danger btn-sm btn-block" onclick="logout()">🚪 Logout</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header">
+      <h1>💳 Make a Deposit</h1>
+      <p>Add funds to your account and start earning daily mining profits</p>
+    </div>
+
+    <!-- Balance Bar -->
+    <div class="card card-gradient" style="margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div>
+        <div style="font-size:0.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;">Current Balance</div>
+        <div style="font-size:1.6rem;font-weight:800;color:var(--accent);" id="current-balance">LKR 0.00</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:0.78rem;color:var(--text-muted);">Minimum Deposit</div>
+        <div style="font-size:1.1rem;font-weight:700;color:var(--accent3);">LKR 500</div>
+      </div>
+    </div>
+
+    <!-- Method Tabs -->
+    <div class="method-tabs">
+      <button class="method-tab active" onclick="switchMethod('bank', this)">🏦 Bank Transfer</button>
+      <button class="method-tab" onclick="switchMethod('polygon', this)">🔷 Polygon (MATIC)</button>
+      <button class="method-tab" onclick="switchMethod('atom', this)">⚛️ Cosmos (ATOM)</button>
+    </div>
+
+    <div class="deposit-grid">
+      <!-- Left: Payment Details -->
+      <div>
+        <!-- Bank Transfer -->
+        <div id="method-bank">
+          <div class="bank-details-card">
+            <h4>🏦 Bank Transfer Details</h4>
+            <div class="bank-row">
+              <span class="key">Bank Name</span>
+              <span class="val">Commercial Bank <button class="copy-btn" onclick="copyToClipboard('Commercial Bank','Copied!')">Copy</button></span>
+            </div>
+            <div class="bank-row">
+              <span class="key">Account Number</span>
+              <span class="val">8029001954 <button class="copy-btn" onclick="copyToClipboard('8029001954','Account number copied!')">Copy</button></span>
+            </div>
+            <div class="bank-row">
+              <span class="key">Account Name</span>
+              <span class="val">S Hasanka <button class="copy-btn" onclick="copyToClipboard('S Hasanka','Name copied!')">Copy</button></span>
+            </div>
+            <div class="bank-row">
+              <span class="key">Min. Deposit</span>
+              <span class="val" style="color:var(--accent3);">LKR 500</span>
+            </div>
+          </div>
+          <div class="bank-details-card">
+            <h4>🏦 Sampath Bank</h4>
+            <div class="bank-row">
+              <span class="key">Bank Name</span>
+              <span class="val">Sampath Bank <button class="copy-btn" onclick="copyToClipboard('Sampath Bank','Copied!')">Copy</button></span>
+            </div>
+            <div class="bank-row">
+              <span class="key">Account Number</span>
+              <span class="val">108452464008 <button class="copy-btn" onclick="copyToClipboard('108452464008','Account number copied!')">Copy</button></span>
+            </div>
+            <div class="bank-row">
+              <span class="key">Account Name</span>
+              <span class="val">W Kumari <button class="copy-btn" onclick="copyToClipboard('W Kumari','Name copied!')">Copy</button></span>
+            </div>
+            <div class="bank-row">
+              <span class="key">Min. Deposit</span>
+              <span class="val" style="color:var(--accent3);">LKR 500</span>
+            </div>
+          </div>
+          <ul class="steps-list">
+            <li>Transfer the amount to the bank account above.</li>
+            <li>Note down your transaction reference number.</li>
+            <li>Fill in the deposit form and upload your payment screenshot.</li>
+            <li>Wait for admin approval (usually within 24 hours).</li>
+            <li>Your balance will be updated after approval.</li>
+          </ul>
+        </div>
+
+        <!-- Polygon -->
+        <div id="method-polygon" style="display:none;">
+          <div class="crypto-card">
+            <h4>🔷 Polygon (MATIC) Deposit</h4>
+            <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:10px;">Send MATIC on the Polygon Network to:</div>
+            <div class="crypto-addr">0xba976dcab432af843dc77836dbc555f7fb8845ad</div>
+            <button class="copy-btn" style="margin-bottom:10px;" onclick="copyToClipboard('0xba976dcab432af843dc77836dbc555f7fb8845ad','Polygon address copied!')">📋 Copy Address</button>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <span class="rate-badge">1 MATIC = 0.0963 USDT</span>
+              <span class="rate-badge">1 USDT = LKR 310</span>
+            </div>
+            <div style="margin-top:12px;padding:10px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:var(--radius-sm);font-size:0.8rem;color:var(--accent-warn);">
+              ⚠️ Only send on Polygon Network. Sending on other networks will result in loss of funds.
+            </div>
+          </div>
+          <ul class="steps-list">
+            <li>Send MATIC to the address above on the Polygon network.</li>
+            <li>Copy your transaction hash after sending.</li>
+            <li>Fill in the form below with transaction details.</li>
+            <li>Upload a screenshot of your transaction.</li>
+            <li>Wait for admin approval (usually within 24 hours).</li>
+          </ul>
+        </div>
+
+        <!-- Atom -->
+        <div id="method-atom" style="display:none;">
+          <div class="crypto-card">
+            <h4>⚛️ Cosmos (ATOM) Deposit</h4>
+            <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:10px;">Send ATOM on the Cosmos Network to:</div>
+            <div class="crypto-addr">cosmos1n9t4v5y6j55e9mqrlexhu796nxctuhyewj9efq</div>
+            <button class="copy-btn" style="margin-bottom:10px;" onclick="copyToClipboard('cosmos1n9t4v5y6j55e9mqrlexhu796nxctuhyewj9efq','Cosmos address copied!')">📋 Copy Address</button>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <span class="rate-badge">1 ATOM = 1.87 USDT</span>
+              <span class="rate-badge">1 USDT = LKR 310</span>
+            </div>
+            <div style="margin-top:12px;padding:10px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:var(--radius-sm);font-size:0.8rem;color:var(--accent-warn);">
+              ⚠️ Only send on Cosmos (Atom) Network. Sending on other networks will result in loss of funds.
+            </div>
+          </div>
+          <ul class="steps-list">
+            <li>Send ATOM to the address above on the Cosmos network.</li>
+            <li>Copy your transaction hash after sending.</li>
+            <li>Fill in the form below with transaction details.</li>
+            <li>Upload a screenshot of your transaction.</li>
+            <li>Wait for admin approval (usually within 24 hours).</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Right: Deposit Form -->
+      <div>
+        <div class="card">
+          <h3 style="font-size:1.05rem;font-weight:700;margin-bottom:20px;">📝 Deposit Request Form</h3>
+          <div id="deposit-alert"></div>
+          <form id="deposit-form" novalidate>
+            <div class="form-group">
+              <label for="dep-amount">Amount (LKR)</label>
+              <input type="number" id="dep-amount" class="form-control" placeholder="Minimum LKR 500" min="500" />
+              <div class="error-msg" id="dep-amount-err"></div>
+            </div>
+            <div class="form-group">
+              <label for="dep-ref">Transaction Reference / Hash</label>
+              <input type="text" id="dep-ref" class="form-control" placeholder="e.g. TXN123456 or 0x..." />
+              <div class="error-msg" id="dep-ref-err"></div>
+            </div>
+            <div class="form-group">
+              <label>Payment Screenshot</label>
+              <div class="upload-area" id="upload-area">
+                <input type="file" id="dep-screenshot" accept="image/*" onchange="handleFileSelect(this)" />
+                <div class="upload-icon">📷</div>
+                <p>Click or drag & drop your payment screenshot</p>
+                <p style="font-size:0.75rem;margin-top:4px;">Supported: JPG, PNG, WEBP (Max 5MB)</p>
+                <div class="file-name" id="file-name"></div>
+              </div>
+              <div class="error-msg" id="dep-file-err"></div>
+            </div>
+            <div class="alert alert-info" style="font-size:0.82rem;">
+              ℹ️ Deposits are reviewed and approved within 24 hours. Your balance will update automatically after approval.
+            </div>
+            <button type="submit" class="btn btn-primary btn-block btn-lg" id="dep-btn">
+              📤 Submit Deposit Request
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Deposit History -->
+    <div class="history-section">
+      <div class="section-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <h3 style="font-size:1.05rem;font-weight:700;">📋 Deposit History</h3>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Amount</th>
+              <th>Method</th>
+              <th>Reference</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="deposit-history-body">
+            <tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:24px;">No deposits yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="script.js"></script>
+<script>
+  let selectedFile = null;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const user = requireAuth('login.html');
+    if (!user) return;
+    document.getElementById('sidebar-user-info').innerHTML = `<strong style="color:var(--text-primary);">${user.username}</strong><br>${user.email}`;
+    document.getElementById('current-balance').textContent = fmtLKR(user.balance);
+    loadHistory(user.id);
+  });
+
+  function switchMethod(method, btn) {
+    document.querySelectorAll('.method-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    ['bank','polygon','atom'].forEach(m => {
+      document.getElementById('method-' + m).style.display = m === method ? 'block' : 'none';
+    });
+  }
+
+  function handleFileSelect(input) {
+    const file = input.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('File too large. Max 5MB.', 'error');
+      return;
+    }
+    selectedFile = file;
+    document.getElementById('file-name').textContent = '✓ ' + file.name;
+    document.getElementById('upload-area').style.borderColor = 'var(--accent3)';
+  }
+
+  // Drag and drop
+  const uploadArea = document.getElementById('upload-area');
+  uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+  uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+  uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault(); uploadArea.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file) { document.getElementById('dep-screenshot').files = e.dataTransfer.files; handleFileSelect(document.getElementById('dep-screenshot')); }
+  });
+
+  document.getElementById('deposit-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const alertEl = document.getElementById('deposit-alert');
+    alertEl.innerHTML = '';
+    const amountEl = document.getElementById('dep-amount');
+    const refEl    = document.getElementById('dep-ref');
+    let valid = true;
+
+    ['dep-amount-err','dep-ref-err','dep-file-err'].forEach(id => document.getElementById(id).classList.remove('show'));
+    [amountEl, refEl].forEach(el => el.classList.remove('error'));
+
+    function showErr(inputId, errId, msg) {
+      const inp = document.getElementById(inputId);
+      const err = document.getElementById(errId);
+      if (inp) inp.classList.add('error');
+      err.textContent = msg; err.classList.add('show');
+      valid = false;
+    }
+
+    if (!amountEl.value || parseFloat(amountEl.value) < 500)
+      showErr('dep-amount', 'dep-amount-err', 'Minimum deposit is LKR 500.');
+    if (!refEl.value.trim())
+      showErr('dep-ref', 'dep-ref-err', 'Transaction reference is required.');
+    if (!selectedFile) {
+      document.getElementById('dep-file-err').textContent = 'Please upload your payment screenshot.';
+      document.getElementById('dep-file-err').classList.add('show');
+      valid = false;
+    }
+    if (!valid) return;
+
+    const btn = document.getElementById('dep-btn');
+    btn.disabled = true; btn.textContent = 'Submitting...';
+
+    setTimeout(() => {
+      const user = getCurrentUser();
+      const deposits = Store.get('hm_deposits', []);
+      const newDep = {
+        id: Date.now(),
+        userId: user.id,
+        username: user.username,
+        amount: parseFloat(amountEl.value),
+        method: 'bank',
+        ref: refEl.value.trim(),
+        date: new Date().toISOString().split('T')[0],
+        status: 'pending'
+      };
+      deposits.push(newDep);
+      Store.set('hm_deposits', deposits);
+
+      alertEl.innerHTML = '<div class="alert alert-success">✅ Deposit request submitted successfully! Awaiting admin approval.</div>';
+      this.reset();
+      selectedFile = null;
+      document.getElementById('file-name').textContent = '';
+      document.getElementById('upload-area').style.borderColor = '';
+      btn.disabled = false; btn.innerHTML = '📤 Submit Deposit Request';
+      loadHistory(user.id);
+      showToast('Deposit request submitted!', 'success');
+    }, 700);
+  });
+
+  function loadHistory(userId) {
+    const deposits = Store.get('hm_deposits', []).filter(d => d.userId === userId);
+    const tbody = document.getElementById('deposit-history-body');
+    if (!deposits.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:24px;">No deposits yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = deposits.sort((a,b) => new Date(b.date)-new Date(a.date)).map(d => {
+      const sc = d.status === 'approved' ? 'badge-success' : d.status === 'pending' ? 'badge-warn' : 'badge-danger';
+      return `<tr>
+        <td>${d.date}</td>
+        <td style="color:var(--accent3);font-weight:700;">${fmtLKR(d.amount)}</td>
+        <td>${d.method === 'bank' ? '🏦 Bank' : '🔷 Crypto'}</td>
+        <td style="font-family:monospace;font-size:0.82rem;">${d.ref}</td>
+        <td><span class="badge ${sc}">${d.status}</span></td>
+      </tr>`;
+    }).join('');
+  }
+</script>
+</body>
+</html>

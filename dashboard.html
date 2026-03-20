@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — Hill Miner</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .mobile-topbar {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 60;
+    }
+    .mobile-topbar .logo {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 1.1rem; font-weight: 700; color: var(--accent);
+    }
+    .mobile-topbar .logo .logo-icon {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem;
+    }
+    #sidebar-toggle { background: none; border: none; color: var(--text-primary); font-size: 1.3rem; cursor: pointer; }
+    @media (max-width: 768px) {
+      .mobile-topbar { display: flex; }
+    }
+
+    /* Stat Cards Grid */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    /* Mining Panel */
+    .mining-panel {
+      background: linear-gradient(135deg, var(--bg-card), #0f1a2e);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      margin-bottom: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    .mining-panel::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent3));
+    }
+    .mining-panel-inner {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 24px;
+      align-items: center;
+    }
+    .mining-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      background: rgba(16,185,129,0.12);
+      border: 1px solid rgba(16,185,129,0.3);
+      color: var(--accent3);
+      margin-bottom: 10px;
+    }
+    .mining-status-badge .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent3);
+      animation: blink 1.5s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+    .mining-info-text h3 { font-size: 1.2rem; font-weight: 800; margin-bottom: 4px; }
+    .mining-info-text p  { font-size: 0.85rem; color: var(--text-muted); }
+    .mining-earnings {
+      text-align: right;
+    }
+    .mining-earnings .label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; }
+    .mining-earnings .value { font-size: 1.8rem; font-weight: 800; color: var(--accent3); }
+    .mining-earnings .sub   { font-size: 0.78rem; color: var(--text-muted); }
+
+    /* Referral Card */
+    .referral-card {
+      background: linear-gradient(135deg, rgba(124,58,237,0.08), rgba(0,229,255,0.05));
+      border: 1px solid rgba(124,58,237,0.25);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .referral-link-box {
+      display: flex;
+      gap: 10px;
+      margin: 14px 0;
+    }
+    .referral-link-box input {
+      flex: 1;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      color: var(--accent);
+      font-size: 0.85rem;
+      outline: none;
+      font-family: monospace;
+    }
+    .referral-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .ref-stat {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      text-align: center;
+    }
+    .ref-stat .val { font-size: 1.3rem; font-weight: 800; color: var(--text-primary); }
+    .ref-stat .lbl { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+
+    /* Transactions */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .section-header h3 { font-size: 1.05rem; font-weight: 700; }
+
+    /* Quick Actions */
+    .quick-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .action-btn-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      text-align: center;
+      cursor: pointer;
+      transition: all var(--transition);
+      text-decoration: none;
+      display: block;
+    }
+    .action-btn-card:hover { transform: translateY(-3px); border-color: rgba(0,229,255,0.3); }
+    .action-btn-card .icon { font-size: 1.8rem; margin-bottom: 8px; }
+    .action-btn-card .label { font-size: 0.85rem; font-weight: 600; color: var(--text-dim); }
+
+    @media (max-width: 768px) {
+      .mining-panel-inner { grid-template-columns: 1fr; text-align: center; }
+      .mining-ring { margin: 0 auto; }
+      .mining-earnings { text-align: center; }
+      .referral-stats { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 500px) {
+      .referral-stats { grid-template-columns: 1fr; }
+      .quick-actions { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div id="toast-container"></div>
+
+<!-- Mobile Top Bar -->
+<div class="mobile-topbar">
+  <div class="logo">
+    <div class="logo-icon">⛏</div>
+    HillMiner
+  </div>
+  <button id="sidebar-toggle">☰</button>
+</div>
+
+<div class="app-layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">⛏</div>
+      HillMiner
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="active"><span class="nav-icon">📊</span> Dashboard</a>
+      <a href="deposit.html"><span class="nav-icon">💳</span> Deposit</a>
+      <a href="withdraw.html"><span class="nav-icon">💸</span> Withdraw</a>
+      <a href="https://t.me/+QzZRWBo6fQVmZWE1" target="_blank"><span class="nav-icon">💬</span> Support</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:10px;" id="sidebar-user-info">Loading...</div>
+      <button class="btn btn-danger btn-sm btn-block" onclick="logout()">🚪 Logout</button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+    <div class="page-header">
+      <h1>Welcome back, <span id="user-name" style="color:var(--accent);">Miner</span>! ⛏</h1>
+      <p>Here's your mining overview for today — <span id="today-date"></span></p>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="stats-row">
+      <div class="stat-card cyan">
+        <div class="stat-icon">💰</div>
+        <div class="stat-value" id="stat-balance">LKR 0</div>
+        <div class="stat-label">Account Balance</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-icon">📥</div>
+        <div class="stat-value" id="stat-deposits">LKR 0</div>
+        <div class="stat-label">Total Deposits</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-icon">📤</div>
+        <div class="stat-value" id="stat-withdrawals">LKR 0</div>
+        <div class="stat-label">Total Withdrawals</div>
+      </div>
+      <div class="stat-card warn">
+        <div class="stat-icon">🤝</div>
+        <div class="stat-value" id="stat-referral">LKR 0</div>
+        <div class="stat-label">Referral Earnings</div>
+      </div>
+    </div>
+
+    <!-- Mining Panel -->
+    <div class="mining-panel">
+      <div class="mining-panel-inner">
+        <div class="mining-ring" style="width:90px;height:90px;"></div>
+        <div class="mining-info-text">
+          <div class="mining-status-badge"><div class="dot"></div> Mining Active</div>
+          <h3>Auto Mining Running</h3>
+          <p>Your investment is generating profits 24/7 automatically.</p>
+          <div class="progress-bar-wrap" style="margin-top:12px;max-width:300px;">
+            <div class="progress-bar-fill" id="mining-progress" style="width:0%;"></div>
+          </div>
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;" id="mining-progress-label">Calculating...</div>
+        </div>
+        <div class="mining-earnings">
+          <div class="label">Est. Daily Earnings</div>
+          <div class="value" id="daily-earnings">LKR 0.00</div>
+          <div class="sub">0.5% of balance/day</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+      <a href="deposit.html" class="action-btn-card">
+        <div class="icon">💳</div>
+        <div class="label">Make Deposit</div>
+      </a>
+      <a href="withdraw.html" class="action-btn-card">
+        <div class="icon">💸</div>
+        <div class="label">Withdraw Funds</div>
+      </a>
+    </div>
+
+    <!-- Referral Section -->
+    <div class="referral-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div>
+          <h3 style="font-size:1.05rem;font-weight:700;margin-bottom:4px;">🔗 Your Referral Link</h3>
+          <p style="font-size:0.83rem;color:var(--text-muted);">Share your link and earn 20% commission on every deposit</p>
+        </div>
+        <span class="badge badge-purple">20% Commission</span>
+      </div>
+      <div class="referral-link-box">
+        <input type="text" id="referral-link" readonly />
+        <button class="btn btn-purple btn-sm" onclick="copyReferral()">📋 Copy</button>
+      </div>
+      <div class="referral-stats">
+        <div class="ref-stat">
+          <div class="val" id="ref-count">0</div>
+          <div class="lbl">Total Referrals</div>
+        </div>
+        <div class="ref-stat">
+          <div class="val" id="ref-earnings">LKR 0</div>
+          <div class="lbl">Referral Earnings</div>
+        </div>
+        <div class="ref-stat">
+          <div class="val">20%</div>
+          <div class="lbl">Commission Rate</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Transactions -->
+    <div>
+      <div class="section-header">
+        <h3>📋 Recent Transactions</h3>
+        <a href="deposit.html" class="btn btn-secondary btn-sm">+ New Deposit</a>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Type</th>
+              <th>Amount</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="transactions-body">
+            <tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:24px;">No transactions yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Telegram Support -->
+    <div style="margin-top:28px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;text-align:center;">
+      <h3 style="margin-bottom:8px;">Need Help?</h3>
+      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px;">Our support team is available on Telegram 24/7</p>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+        <a href="https://t.me/+QzZRWBo6fQVmZWE1" target="_blank" class="tg-btn tg-support">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.941z"/></svg>
+          Customer Service
+        </a>
+        <a href="https://t.me/+QzZRWBo6fQVmZWE1" target="_blank" class="tg-btn tg-community">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.941z"/></svg>
+          Community Group
+        </a>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="script.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const user = requireAuth('login.html');
+    if (!user) return;
+
+    // Set today date
+    document.getElementById('today-date').textContent = new Date().toLocaleDateString('en-LK', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+    // User info
+    document.getElementById('user-name').textContent = user.username;
+    document.getElementById('sidebar-user-info').innerHTML = `<strong style="color:var(--text-primary);">${user.username}</strong><br>${user.email}`;
+
+    // Stats
+    document.getElementById('stat-balance').textContent = fmtLKR(user.balance);
+    document.getElementById('stat-deposits').textContent = fmtLKR(user.totalDeposits);
+    document.getElementById('stat-withdrawals').textContent = fmtLKR(user.totalWithdrawals);
+    document.getElementById('stat-referral').textContent = fmtLKR(user.referralEarnings);
+
+    // Daily earnings
+    const daily = getDailyEarnings(user.balance);
+    document.getElementById('daily-earnings').textContent = fmtLKR(daily);
+
+    // Mining progress (simulate based on time of day)
+    const now = new Date();
+    const pct = Math.min(100, Math.round(((now.getHours() * 60 + now.getMinutes()) / 1440) * 100));
+    document.getElementById('mining-progress').style.width = pct + '%';
+    document.getElementById('mining-progress-label').textContent = `Daily progress: ${pct}% — Est. earned today: ${fmtLKR(daily * pct / 100)}`;
+
+    // Referral
+    const refLink = `hillminer.com/register?ref=${user.referralCode}`;
+    document.getElementById('referral-link').value = refLink;
+    document.getElementById('ref-count').textContent = user.referrals || 0;
+    document.getElementById('ref-earnings').textContent = fmtLKR(user.referralEarnings);
+
+    // Transactions
+    const deposits    = Store.get('hm_deposits', []).filter(d => d.userId === user.id);
+    const withdrawals = Store.get('hm_withdrawals', []).filter(w => w.userId === user.id);
+    const all = [
+      ...deposits.map(d => ({ date: d.date, type: 'Deposit', amount: d.amount, status: d.status })),
+      ...withdrawals.map(w => ({ date: w.date, type: 'Withdrawal', amount: w.amount, status: w.status }))
+    ].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    const tbody = document.getElementById('transactions-body');
+    if (all.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:24px;">No transactions yet. <a href="deposit.html">Make your first deposit</a></td></tr>';
+    } else {
+      tbody.innerHTML = all.slice(0, 10).map(t => {
+        const statusClass = t.status === 'approved' ? 'badge-success' : t.status === 'pending' ? 'badge-warn' : 'badge-danger';
+        const typeIcon = t.type === 'Deposit' ? '📥' : '📤';
+        return `<tr>
+          <td>${t.date}</td>
+          <td>${typeIcon} ${t.type}</td>
+          <td style="color:${t.type==='Deposit'?'var(--accent3)':'var(--accent-warn)'};">${fmtLKR(t.amount)}</td>
+          <td><span class="badge ${statusClass}">${t.status}</span></td>
+        </tr>`;
+      }).join('');
+    }
+  });
+
+  function copyReferral() {
+    const link = document.getElementById('referral-link').value;
+    copyToClipboard(link, 'Referral link copied!');
+  }
+</script>
+</body>
+</html>

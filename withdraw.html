@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Withdraw — Hill Miner</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .mobile-topbar {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 60;
+    }
+    .mobile-topbar .logo { display: flex; align-items: center; gap: 8px; font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+    .mobile-topbar .logo .logo-icon { width: 28px; height: 28px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; }
+    #sidebar-toggle { background: none; border: none; color: var(--text-primary); font-size: 1.3rem; cursor: pointer; }
+    @media (max-width: 768px) { .mobile-topbar { display: flex; } }
+
+    .withdraw-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    /* Time Banner */
+    .time-banner {
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .time-banner.open {
+      background: rgba(16,185,129,0.1);
+      border: 1px solid rgba(16,185,129,0.3);
+    }
+    .time-banner.closed {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+    }
+    .time-banner .icon { font-size: 1.5rem; }
+    .time-banner .text strong { display: block; font-size: 0.95rem; font-weight: 700; }
+    .time-banner .text span   { font-size: 0.82rem; color: var(--text-muted); }
+    .time-banner.open  .text strong { color: var(--accent3); }
+    .time-banner.closed .text strong { color: var(--accent-danger); }
+
+    /* Balance Summary */
+    .balance-summary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .bal-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      text-align: center;
+    }
+    .bal-card .val { font-size: 1.2rem; font-weight: 800; }
+    .bal-card .lbl { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+
+    /* Info Card */
+    .info-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+    .info-card h4 { font-size: 0.9rem; font-weight: 700; margin-bottom: 14px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.8px; }
+    .info-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(30,42,64,0.4);
+      font-size: 0.85rem;
+    }
+    .info-item:last-child { border-bottom: none; }
+    .info-item .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-top: 6px; flex-shrink: 0; }
+    .info-item .text { color: var(--text-dim); line-height: 1.5; }
+
+    @media (max-width: 900px) { .withdraw-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 600px) { .balance-summary { grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body>
+<div id="toast-container"></div>
+
+<div class="mobile-topbar">
+  <div class="logo"><div class="logo-icon">⛏</div> HillMiner</div>
+  <button id="sidebar-toggle">☰</button>
+</div>
+
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo"><div class="logo-icon">⛏</div> HillMiner</div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html"><span class="nav-icon">📊</span> Dashboard</a>
+      <a href="deposit.html"><span class="nav-icon">💳</span> Deposit</a>
+      <a href="withdraw.html" class="active"><span class="nav-icon">💸</span> Withdraw</a>
+      <a href="https://t.me/+QzZRWBo6fQVmZWE1" target="_blank"><span class="nav-icon">💬</span> Support</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:10px;" id="sidebar-user-info">Loading...</div>
+      <button class="btn btn-danger btn-sm btn-block" onclick="logout()">🚪 Logout</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header">
+      <h1>💸 Withdraw Funds</h1>
+      <p>Withdraw your earnings directly to your bank account</p>
+    </div>
+
+    <!-- Time Banner -->
+    <div class="time-banner" id="time-banner">
+      <div class="icon" id="time-icon">⏰</div>
+      <div class="text">
+        <strong id="time-status">Checking withdrawal window...</strong>
+        <span id="time-detail">Withdrawals are available 10:00 AM – 8:00 PM daily</span>
+      </div>
+      <div style="margin-left:auto;font-size:1.2rem;font-weight:800;" id="current-time"></div>
+    </div>
+
+    <!-- Balance Summary -->
+    <div class="balance-summary">
+      <div class="bal-card">
+        <div class="val" id="bal-balance" style="color:var(--accent);">LKR 0</div>
+        <div class="lbl">Available Balance</div>
+      </div>
+      <div class="bal-card">
+        <div class="val" id="bal-withdrawn" style="color:var(--accent-warn);">LKR 0</div>
+        <div class="lbl">Total Withdrawn</div>
+      </div>
+      <div class="bal-card">
+        <div class="val" style="color:var(--accent3);">LKR 1,000</div>
+        <div class="lbl">Minimum Withdrawal</div>
+      </div>
+    </div>
+
+    <div class="withdraw-grid">
+      <!-- Left: Form -->
+      <div>
+        <div class="card">
+          <h3 style="font-size:1.05rem;font-weight:700;margin-bottom:20px;">🏦 Withdrawal Request</h3>
+          <div id="withdraw-alert"></div>
+          <form id="withdraw-form" novalidate>
+            <div class="form-group">
+              <label for="wd-amount">Withdrawal Amount (LKR)</label>
+              <input type="number" id="wd-amount" class="form-control" placeholder="Minimum LKR 1,000" min="1000" />
+              <div class="error-msg" id="wd-amount-err"></div>
+            </div>
+            <div class="form-group">
+              <label for="wd-bank">Bank Name</label>
+              <select id="wd-bank" class="form-control">
+                <option value="">Select your bank</option>
+                <option>Commercial Bank</option>
+                <option>Bank of Ceylon</option>
+                <option>Peoples Bank</option>
+                <option>Sampath Bank</option>
+                <option>HNB (Hatton National Bank)</option>
+                <option>NSB (National Savings Bank)</option>
+                <option>Seylan Bank</option>
+                <option>NDB Bank</option>
+                <option>Pan Asia Bank</option>
+                <option>DFCC Bank</option>
+                <option>Other</option>
+              </select>
+              <div class="error-msg" id="wd-bank-err"></div>
+            </div>
+            <div class="form-group">
+              <label for="wd-accno">Account Number</label>
+              <input type="text" id="wd-accno" class="form-control" placeholder="Enter your account number" />
+              <div class="error-msg" id="wd-accno-err"></div>
+            </div>
+            <div class="form-group">
+              <label for="wd-holder">Account Holder Name</label>
+              <input type="text" id="wd-holder" class="form-control" placeholder="Full name as on bank account" />
+              <div class="error-msg" id="wd-holder-err"></div>
+            </div>
+            <div class="alert alert-warn" style="font-size:0.82rem;margin-bottom:16px;">
+              ⚠️ Ensure your bank details are correct. Incorrect details may result in failed transfers.
+            </div>
+            <button type="submit" class="btn btn-green btn-block btn-lg" id="wd-btn">
+              💸 Submit Withdrawal Request
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Right: Info -->
+      <div>
+        <div class="info-card" style="margin-bottom:16px;">
+          <h4>📋 Withdrawal Rules</h4>
+          <div class="info-item"><div class="dot"></div><div class="text">Minimum withdrawal amount is <strong>LKR 1,000</strong>.</div></div>
+          <div class="info-item"><div class="dot"></div><div class="text">Withdrawals are only processed between <strong>10:00 AM – 8:00 PM</strong> daily.</div></div>
+          <div class="info-item"><div class="dot"></div><div class="text">Requests submitted outside working hours will be processed the next day.</div></div>
+          <div class="info-item"><div class="dot"></div><div class="text">Processing time is usually <strong>1–24 hours</strong> after approval.</div></div>
+          <div class="info-item"><div class="dot"></div><div class="text">You cannot withdraw more than your available balance.</div></div>
+          <div class="info-item"><div class="dot"></div><div class="text">For issues, contact Telegram support immediately.</div></div>
+        </div>
+
+        <div class="card" style="text-align:center;">
+          <div style="font-size:1.5rem;margin-bottom:8px;">💬</div>
+          <h4 style="font-size:0.95rem;font-weight:700;margin-bottom:6px;">Need Help?</h4>
+          <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:14px;">Contact our support team for withdrawal assistance</p>
+          <a href="https://t.me/+QzZRWBo6fQVmZWE1" target="_blank" class="tg-btn tg-support btn-block" style="justify-content:center;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.941z"/></svg>
+            Telegram Support
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Withdrawal History -->
+    <div style="margin-top:28px;">
+      <h3 style="font-size:1.05rem;font-weight:700;margin-bottom:16px;">📋 Withdrawal History</h3>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Amount</th>
+              <th>Bank</th>
+              <th>Account No.</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="withdraw-history-body">
+            <tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:24px;">No withdrawals yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="script.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const user = requireAuth('login.html');
+    if (!user) return;
+    document.getElementById('sidebar-user-info').innerHTML = `<strong style="color:var(--text-primary);">${user.username}</strong><br>${user.email}`;
+    document.getElementById('bal-balance').textContent   = fmtLKR(user.balance);
+    document.getElementById('bal-withdrawn').textContent = fmtLKR(user.totalWithdrawals);
+    updateTimeBanner();
+    setInterval(updateTimeBanner, 30000);
+    loadWithdrawHistory(user.id);
+  });
+
+  function updateTimeBanner() {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('en-LK', { hour:'2-digit', minute:'2-digit', hour12:true });
+    document.getElementById('current-time').textContent = timeStr;
+    const banner = document.getElementById('time-banner');
+    const statusEl = document.getElementById('time-status');
+    const iconEl   = document.getElementById('time-icon');
+    if (isWithdrawTime()) {
+      banner.className = 'time-banner open';
+      statusEl.textContent = '✅ Withdrawals are OPEN';
+      iconEl.textContent = '✅';
+    } else {
+      banner.className = 'time-banner closed';
+      statusEl.textContent = '🔒 Withdrawals are CLOSED';
+      iconEl.textContent = '🔒';
+    }
+  }
+
+  document.getElementById('withdraw-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const alertEl = document.getElementById('withdraw-alert');
+    alertEl.innerHTML = '';
+
+    const amountEl = document.getElementById('wd-amount');
+    const bankEl   = document.getElementById('wd-bank');
+    const accnoEl  = document.getElementById('wd-accno');
+    const holderEl = document.getElementById('wd-holder');
+    let valid = true;
+
+    ['wd-amount-err','wd-bank-err','wd-accno-err','wd-holder-err'].forEach(id => document.getElementById(id).classList.remove('show'));
+    [amountEl, bankEl, accnoEl, holderEl].forEach(el => el.classList.remove('error'));
+
+    function showErr(inputId, errId, msg) {
+      const inp = document.getElementById(inputId);
+      const err = document.getElementById(errId);
+      if (inp) inp.classList.add('error');
+      err.textContent = msg; err.classList.add('show');
+      valid = false;
+    }
+
+    const user = getCurrentUser();
+    const amount = parseFloat(amountEl.value);
+
+    if (!amountEl.value || amount < 1000)
+      showErr('wd-amount', 'wd-amount-err', 'Minimum withdrawal is LKR 1,000.');
+    else if (amount > user.balance)
+      showErr('wd-amount', 'wd-amount-err', `Insufficient balance. Available: ${fmtLKR(user.balance)}`);
+    if (!bankEl.value)
+      showErr('wd-bank', 'wd-bank-err', 'Please select your bank.');
+    if (!accnoEl.value.trim())
+      showErr('wd-accno', 'wd-accno-err', 'Account number is required.');
+    if (!holderEl.value.trim())
+      showErr('wd-holder', 'wd-holder-err', 'Account holder name is required.');
+
+    if (!valid) return;
+
+    if (!isWithdrawTime()) {
+      alertEl.innerHTML = '<div class="alert alert-danger">🔒 Withdrawals are only allowed between 10:00 AM – 8:00 PM. Please try again during working hours.</div>';
+      return;
+    }
+
+    const btn = document.getElementById('wd-btn');
+    btn.disabled = true; btn.textContent = 'Submitting...';
+
+    setTimeout(() => {
+      const withdrawals = Store.get('hm_withdrawals', []);
+      const newWd = {
+        id: Date.now(),
+        userId: user.id,
+        username: user.username,
+        amount: amount,
+        bank: bankEl.value,
+        accNo: accnoEl.value.trim(),
+        holder: holderEl.value.trim(),
+        date: new Date().toISOString().split('T')[0],
+        status: 'pending'
+      };
+      withdrawals.push(newWd);
+      Store.set('hm_withdrawals', withdrawals);
+
+      // Deduct balance
+      const users = Store.get('hm_users', []);
+      const idx = users.findIndex(u => u.id === user.id);
+      if (idx !== -1) {
+        users[idx].balance -= amount;
+        users[idx].totalWithdrawals += amount;
+        Store.set('hm_users', users);
+        Store.set('hm_current_user', user.id);
+      }
+
+      alertEl.innerHTML = '<div class="alert alert-success">✅ Withdrawal request submitted! Awaiting admin approval.</div>';
+      document.getElementById('bal-balance').textContent = fmtLKR(users[idx].balance);
+      document.getElementById('bal-withdrawn').textContent = fmtLKR(users[idx].totalWithdrawals);
+      this.reset();
+      btn.disabled = false; btn.innerHTML = '💸 Submit Withdrawal Request';
+      loadWithdrawHistory(user.id);
+      showToast('Withdrawal request submitted!', 'success');
+    }, 700);
+  });
+
+  function loadWithdrawHistory(userId) {
+    const withdrawals = Store.get('hm_withdrawals', []).filter(w => w.userId === userId);
+    const tbody = document.getElementById('withdraw-history-body');
+    if (!withdrawals.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:24px;">No withdrawals yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = withdrawals.sort((a,b) => new Date(b.date)-new Date(a.date)).map(w => {
+      const sc = w.status === 'approved' ? 'badge-success' : w.status === 'pending' ? 'badge-warn' : 'badge-danger';
+      return `<tr>
+        <td>${w.date}</td>
+        <td style="color:var(--accent-warn);font-weight:700;">${fmtLKR(w.amount)}</td>
+        <td>${w.bank}</td>
+        <td style="font-family:monospace;font-size:0.82rem;">${w.accNo}</td>
+        <td><span class="badge ${sc}">${w.status}</span></td>
+      </tr>`;
+    }).join('');
+  }
+</script>
+</body>
+</html>

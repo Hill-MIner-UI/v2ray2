@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel — Hill Miner</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .mobile-topbar {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 60;
+    }
+    .mobile-topbar .logo { display: flex; align-items: center; gap: 8px; font-size: 1.1rem; font-weight: 700; color: var(--accent-warn); }
+    .mobile-topbar .logo .logo-icon { width: 28px; height: 28px; background: linear-gradient(135deg, var(--accent-warn), #d97706); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; }
+    #sidebar-toggle { background: none; border: none; color: var(--text-primary); font-size: 1.3rem; cursor: pointer; }
+    @media (max-width: 768px) { .mobile-topbar { display: flex; } }
+
+    /* Admin Sidebar Override */
+    .sidebar { border-right-color: rgba(245,158,11,0.2); }
+    .sidebar-logo { color: var(--accent-warn); }
+    .sidebar-nav a:hover, .sidebar-nav a.active {
+      color: var(--accent-warn);
+      background: rgba(245,158,11,0.06);
+      border-left-color: var(--accent-warn);
+    }
+
+    /* Tab Navigation */
+    .admin-tabs {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 8px;
+    }
+    .admin-tab {
+      padding: 9px 16px;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .admin-tab:hover { color: var(--text-primary); background: var(--bg-secondary); }
+    .admin-tab.active { background: rgba(245,158,11,0.12); color: var(--accent-warn); border: 1px solid rgba(245,158,11,0.3); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* Stats */
+    .admin-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    /* Action Buttons in Table */
+    .action-group { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    /* Edit Balance Modal */
+    .edit-balance-form { display: flex; flex-direction: column; gap: 14px; }
+
+    /* Referral Tree */
+    .ref-tree { list-style: none; }
+    .ref-tree-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .ref-tree-item .user-info { display: flex; align-items: center; gap: 10px; }
+    .ref-tree-item .avatar {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .ref-tree-item .name { font-weight: 700; font-size: 0.9rem; }
+    .ref-tree-item .code { font-size: 0.75rem; color: var(--text-muted); font-family: monospace; }
+    .ref-children {
+      margin-left: 32px;
+      padding-left: 16px;
+      border-left: 2px solid rgba(124,58,237,0.3);
+      margin-top: 4px;
+    }
+    .ref-children .ref-tree-item { background: var(--bg-secondary); }
+
+    /* Search */
+    .search-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .search-bar input {
+      flex: 1;
+      min-width: 200px;
+      padding: 10px 14px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-size: 0.88rem;
+      outline: none;
+      transition: border-color var(--transition);
+    }
+    .search-bar input:focus { border-color: var(--accent); }
+    .search-bar select {
+      padding: 10px 14px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-size: 0.88rem;
+      outline: none;
+      cursor: pointer;
+    }
+
+    @media (max-width: 600px) {
+      .admin-tabs { gap: 4px; }
+      .admin-tab { padding: 7px 10px; font-size: 0.78rem; }
+    }
+  </style>
+</head>
+<body>
+<div id="toast-container"></div>
+
+<div class="mobile-topbar">
+  <div class="logo"><div class="logo-icon">⚙</div> Admin Panel</div>
+  <button id="sidebar-toggle">☰</button>
+</div>
+
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo" style="color:var(--accent-warn);">
+      <div class="logo-icon" style="background:linear-gradient(135deg,var(--accent-warn),#d97706);">⚙</div>
+      Admin Panel
+    </div>
+    <nav class="sidebar-nav">
+      <a href="#" onclick="switchTab('overview')" id="tab-link-overview" class="active"><span class="nav-icon">📊</span> Overview</a>
+      <a href="#" onclick="switchTab('users')" id="tab-link-users"><span class="nav-icon">👥</span> Users</a>
+      <a href="#" onclick="switchTab('deposits')" id="tab-link-deposits"><span class="nav-icon">💳</span> Deposits</a>
+      <a href="#" onclick="switchTab('withdrawals')" id="tab-link-withdrawals"><span class="nav-icon">💸</span> Withdrawals</a>
+      <a href="#" onclick="switchTab('referrals')" id="tab-link-referrals"><span class="nav-icon">🔗</span> Referrals</a>
+      <a href="dashboard.html"><span class="nav-icon">🏠</span> User Dashboard</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:10px;" id="sidebar-user-info">Admin</div>
+      <button class="btn btn-danger btn-sm btn-block" onclick="logout()">🚪 Logout</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header">
+      <h1>⚙ Admin Control Panel</h1>
+      <p>Manage users, deposits, withdrawals, and referrals</p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="admin-tabs">
+      <button class="admin-tab active" id="tab-btn-overview" onclick="switchTab('overview')">📊 Overview</button>
+      <button class="admin-tab" id="tab-btn-users" onclick="switchTab('users')">👥 Users</button>
+      <button class="admin-tab" id="tab-btn-deposits" onclick="switchTab('deposits')">💳 Deposits</button>
+      <button class="admin-tab" id="tab-btn-withdrawals" onclick="switchTab('withdrawals')">💸 Withdrawals</button>
+      <button class="admin-tab" id="tab-btn-referrals" onclick="switchTab('referrals')">🔗 Referrals</button>
+    </div>
+
+    <!-- ===== OVERVIEW TAB ===== -->
+    <div class="tab-panel active" id="panel-overview">
+      <div class="admin-stats" id="admin-stats-grid">
+        <!-- Populated by JS -->
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;" class="overview-grid">
+        <div>
+          <h3 style="font-size:1rem;font-weight:700;margin-bottom:14px;">🕐 Recent Deposits</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th>User</th><th>Amount</th><th>Status</th></tr></thead>
+              <tbody id="recent-deposits-body"></tbody>
+            </table>
+          </div>
+        </div>
+        <div>
+          <h3 style="font-size:1rem;font-weight:700;margin-bottom:14px;">🕐 Recent Withdrawals</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th>User</th><th>Amount</th><th>Status</th></tr></thead>
+              <tbody id="recent-withdrawals-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== USERS TAB ===== -->
+    <div class="tab-panel" id="panel-users">
+      <div class="search-bar">
+        <input type="text" id="user-search" placeholder="Search by username or email..." oninput="renderUsers()" />
+        <select id="user-filter" onchange="renderUsers()">
+          <option value="all">All Users</option>
+          <option value="active">Active</option>
+          <option value="blocked">Blocked</option>
+        </select>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Username</th>
+              <th>Email</th>
+              <th>Balance</th>
+              <th>Deposits</th>
+              <th>Referrals</th>
+              <th>Joined</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="users-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== DEPOSITS TAB ===== -->
+    <div class="tab-panel" id="panel-deposits">
+      <div class="search-bar">
+        <input type="text" id="dep-search" placeholder="Search by username or reference..." oninput="renderDeposits()" />
+        <select id="dep-filter" onchange="renderDeposits()">
+          <option value="all">All</option>
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+        </select>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>User</th>
+              <th>Amount</th>
+              <th>Method</th>
+              <th>Reference</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="deposits-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== WITHDRAWALS TAB ===== -->
+    <div class="tab-panel" id="panel-withdrawals">
+      <div class="search-bar">
+        <input type="text" id="wd-search" placeholder="Search by username or account..." oninput="renderWithdrawals()" />
+        <select id="wd-filter" onchange="renderWithdrawals()">
+          <option value="all">All</option>
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+        </select>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>User</th>
+              <th>Amount</th>
+              <th>Bank</th>
+              <th>Account</th>
+              <th>Holder</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="withdrawals-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== REFERRALS TAB ===== -->
+    <div class="tab-panel" id="panel-referrals">
+      <div style="margin-bottom:16px;">
+        <div class="alert alert-info">🔗 Referral tree showing all users and their referred members. Commission rate: <strong>20%</strong></div>
+      </div>
+      <ul class="ref-tree" id="referral-tree"></ul>
+    </div>
+  </main>
+</div>
+
+<!-- Edit Balance Modal -->
+<div class="modal-overlay" id="edit-balance-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('edit-balance')">✕</button>
+    <h3>✏️ Edit User Balance</h3>
+    <div class="edit-balance-form">
+      <div>
+        <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:4px;">User</div>
+        <div style="font-weight:700;" id="edit-user-name">—</div>
+      </div>
+      <div>
+        <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:4px;">Current Balance</div>
+        <div style="font-weight:700;color:var(--accent);" id="edit-current-bal">—</div>
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label for="edit-new-bal">New Balance (LKR)</label>
+        <input type="number" id="edit-new-bal" class="form-control" placeholder="Enter new balance" min="0" />
+      </div>
+      <input type="hidden" id="edit-user-id" />
+      <button class="btn btn-warn btn-block" onclick="saveBalance()">💾 Save Balance</button>
+    </div>
+  </div>
+</div>
+
+<!-- View User Modal -->
+<div class="modal-overlay" id="view-user-modal">
+  <div class="modal" style="max-width:520px;">
+    <button class="modal-close" onclick="closeModal('view-user')">✕</button>
+    <h3>👤 User Details</h3>
+    <div id="view-user-content"></div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+<script>
+  let currentTab = 'overview';
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const user = requireAdmin();
+    if (!user) return;
+    document.getElementById('sidebar-user-info').innerHTML = `<strong style="color:var(--text-primary);">${user.username}</strong><br><span style="color:var(--accent-warn);">Administrator</span>`;
+    renderOverview();
+    renderUsers();
+    renderDeposits();
+    renderWithdrawals();
+    renderReferralTree();
+  });
+
+  function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.admin-tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('[id^="tab-link-"]').forEach(a => a.classList.remove('active'));
+    document.getElementById('panel-' + tab).classList.add('active');
+    document.getElementById('tab-btn-' + tab).classList.add('active');
+    const link = document.getElementById('tab-link-' + tab);
+    if (link) link.classList.add('active');
+  }
+
+  /* ---- Overview ---- */
+  function renderOverview() {
+    const users       = Store.get('hm_users', []);
+    const deposits    = Store.get('hm_deposits', []);
+    const withdrawals = Store.get('hm_withdrawals', []);
+    const totalDep    = deposits.filter(d => d.status === 'approved').reduce((s,d) => s + d.amount, 0);
+    const totalWd     = withdrawals.filter(w => w.status === 'approved').reduce((s,w) => s + w.amount, 0);
+    const totalRefs   = users.reduce((s,u) => s + (u.referrals || 0), 0);
+
+    document.getElementById('admin-stats-grid').innerHTML = `
+      <div class="stat-card cyan">
+        <div class="stat-icon">👥</div>
+        <div class="stat-value">${users.length}</div>
+        <div class="stat-label">Total Users</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-icon">💳</div>
+        <div class="stat-value">${fmtLKR(totalDep)}</div>
+        <div class="stat-label">Total Deposits</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-icon">💸</div>
+        <div class="stat-value">${fmtLKR(totalWd)}</div>
+        <div class="stat-label">Total Withdrawals</div>
+      </div>
+      <div class="stat-card warn">
+        <div class="stat-icon">🔗</div>
+        <div class="stat-value">${totalRefs}</div>
+        <div class="stat-label">Total Referrals</div>
+      </div>
+      <div class="stat-card cyan">
+        <div class="stat-icon">⏳</div>
+        <div class="stat-value">${deposits.filter(d=>d.status==='pending').length}</div>
+        <div class="stat-label">Pending Deposits</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-icon">⏳</div>
+        <div class="stat-value">${withdrawals.filter(w=>w.status==='pending').length}</div>
+        <div class="stat-label">Pending Withdrawals</div>
+      </div>
+    `;
+
+    // Recent deposits
+    const rdBody = document.getElementById('recent-deposits-body');
+    const recentDeps = [...deposits].sort((a,b) => new Date(b.date)-new Date(a.date)).slice(0,5);
+    rdBody.innerHTML = recentDeps.length ? recentDeps.map(d => {
+      const sc = d.status==='approved'?'badge-success':d.status==='pending'?'badge-warn':'badge-danger';
+      return `<tr><td>${d.username}</td><td style="color:var(--accent3);">${fmtLKR(d.amount)}</td><td><span class="badge ${sc}">${d.status}</span></td></tr>`;
+    }).join('') : '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:16px;">None</td></tr>';
+
+    // Recent withdrawals
+    const rwBody = document.getElementById('recent-withdrawals-body');
+    const recentWds = [...withdrawals].sort((a,b) => new Date(b.date)-new Date(a.date)).slice(0,5);
+    rwBody.innerHTML = recentWds.length ? recentWds.map(w => {
+      const sc = w.status==='approved'?'badge-success':w.status==='pending'?'badge-warn':'badge-danger';
+      return `<tr><td>${w.username}</td><td style="color:var(--accent-warn);">${fmtLKR(w.amount)}</td><td><span class="badge ${sc}">${w.status}</span></td></tr>`;
+    }).join('') : '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:16px;">None</td></tr>';
+  }
+
+  /* ---- Users ---- */
+  function renderUsers() {
+    const search = (document.getElementById('user-search').value || '').toLowerCase();
+    const filter = document.getElementById('user-filter').value;
+    let users = Store.get('hm_users', []);
+    if (filter === 'active')  users = users.filter(u => !u.blocked);
+    if (filter === 'blocked') users = users.filter(u => u.blocked);
+    if (search) users = users.filter(u => u.username.toLowerCase().includes(search) || u.email.toLowerCase().includes(search));
+
+    const tbody = document.getElementById('users-table-body');
+    if (!users.length) {
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:24px;">No users found.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = users.map(u => `
+      <tr>
+        <td style="color:var(--text-muted);">#${u.id}</td>
+        <td><strong>${u.username}</strong>${u.role==='admin'?'<span class="badge badge-warn" style="margin-left:6px;">Admin</span>':''}</td>
+        <td style="font-size:0.82rem;">${u.email}</td>
+        <td style="color:var(--accent);font-weight:700;">${fmtLKR(u.balance)}</td>
+        <td style="color:var(--accent3);">${fmtLKR(u.totalDeposits)}</td>
+        <td>${u.referrals || 0}</td>
+        <td style="font-size:0.82rem;">${u.joinDate}</td>
+        <td><span class="badge ${u.blocked?'badge-danger':'badge-success'}">${u.blocked?'Blocked':'Active'}</span></td>
+        <td>
+          <div class="action-group">
+            <button class="btn btn-secondary btn-sm" onclick="viewUser(${u.id})">👁 View</button>
+            <button class="btn btn-warn btn-sm" onclick="openEditBalance(${u.id})">✏️ Balance</button>
+            <button class="btn ${u.blocked?'btn-green':'btn-danger'} btn-sm" onclick="toggleBlock(${u.id})">
+              ${u.blocked?'✅ Unblock':'🚫 Block'}
+            </button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function viewUser(id) {
+    const users = Store.get('hm_users', []);
+    const u = users.find(x => x.id === id);
+    if (!u) return;
+    document.getElementById('view-user-content').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:0.88rem;">
+        <div><div style="color:var(--text-muted);margin-bottom:2px;">Username</div><strong>${u.username}</strong></div>
+        <div><div style="color:var(--text-muted);margin-bottom:2px;">Email</div><strong>${u.email}</strong></div>
+        <div><div style="color:var(--text-muted);margin-bottom:2px;">Balance</div><strong style="color:var(--accent);">${fmtLKR(u.balance)}</strong></div>
+        <div><div style="color:var(--text-muted);margin-bottom:2px;">Total Deposits</div><strong style="color:var(--accent3);">${fmtLKR(u.totalDeposits)}</strong></div>
+        <div><div style="color:var(--text-muted);margin-bottom:2px;">Total Withdrawals</div><strong style="color:var(--accent-warn);">${fmtLKR(u.totalWithdrawals)}</strong></div>
+        <div><div style="color:var(--text-muted);margin-bottom:2px;">Referral Earnings</div><strong>${fmtLKR(u.referralEarnings)}</strong></div>
+        <div><div style="color:var(--text-muted);margin-bottom:2px;">Referral Code</div><strong style="font-family:monospace;">${u.referralCode}</strong></div>
+        <div><div style="color:var(--text-muted);margin-bottom:2px;">Referred By</div><strong>${u.referredBy || '—'}</strong></div>
+        <div><div style="color:var(--text-muted);margin-bottom:2px;">Total Referrals</div><strong>${u.referrals || 0}</strong></div>
+        <div><div style="color:var(--text-muted);margin-bottom:2px;">Join Date</div><strong>${u.joinDate}</strong></div>
+        <div><div style="color:var(--text-muted);margin-bottom:2px;">Role</div><strong>${u.role}</strong></div>
+        <div><div style="color:var(--text-muted);margin-bottom:2px;">Status</div><span class="badge ${u.blocked?'badge-danger':'badge-success'}">${u.blocked?'Blocked':'Active'}</span></div>
+      </div>
+    `;
+    document.getElementById('view-user-modal').classList.add('open');
+  }
+
+  function openEditBalance(id) {
+    const users = Store.get('hm_users', []);
+    const u = users.find(x => x.id === id);
+    if (!u) return;
+    document.getElementById('edit-user-id').value = id;
+    document.getElementById('edit-user-name').textContent = u.username;
+    document.getElementById('edit-current-bal').textContent = fmtLKR(u.balance);
+    document.getElementById('edit-new-bal').value = u.balance;
+    document.getElementById('edit-balance-modal').classList.add('open');
+  }
+
+  function saveBalance() {
+    const id  = parseInt(document.getElementById('edit-user-id').value);
+    const val = parseFloat(document.getElementById('edit-new-bal').value);
+    if (isNaN(val) || val < 0) { showToast('Invalid balance amount.', 'error'); return; }
+    const users = Store.get('hm_users', []);
+    const idx = users.findIndex(u => u.id === id);
+    if (idx !== -1) { users[idx].balance = val; Store.set('hm_users', users); }
+    closeModal('edit-balance');
+    renderUsers();
+    renderOverview();
+    showToast('Balance updated successfully!', 'success');
+  }
+
+  function toggleBlock(id) {
+    const users = Store.get('hm_users', []);
+    const idx = users.findIndex(u => u.id === id);
+    if (idx !== -1) {
+      users[idx].blocked = !users[idx].blocked;
+      Store.set('hm_users', users);
+      showToast(users[idx].blocked ? 'User blocked.' : 'User unblocked.', 'success');
+      renderUsers();
+      renderOverview();
+    }
+  }
+
+  /* ---- Deposits ---- */
+  function renderDeposits() {
+    const search = (document.getElementById('dep-search').value || '').toLowerCase();
+    const filter = document.getElementById('dep-filter').value;
+    let deposits = Store.get('hm_deposits', []);
+    if (filter !== 'all') deposits = deposits.filter(d => d.status === filter);
+    if (search) deposits = deposits.filter(d => d.username.toLowerCase().includes(search) || d.ref.toLowerCase().includes(search));
+    deposits = deposits.sort((a,b) => new Date(b.date)-new Date(a.date));
+
+    const tbody = document.getElementById('deposits-table-body');
+    if (!deposits.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:24px;">No deposits found.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = deposits.map(d => {
+      const sc = d.status==='approved'?'badge-success':d.status==='pending'?'badge-warn':'badge-danger';
+      const actions = d.status === 'pending' ? `
+        <div class="action-group">
+          <button class="btn btn-green btn-sm" onclick="approveDeposit(${d.id})">✅ Approve</button>
+          <button class="btn btn-danger btn-sm" onclick="rejectDeposit(${d.id})">❌ Reject</button>
+        </div>` : `<span style="color:var(--text-muted);font-size:0.82rem;">${d.status}</span>`;
+      return `<tr>
+        <td style="font-size:0.82rem;">${d.date}</td>
+        <td><strong>${d.username}</strong></td>
+        <td style="color:var(--accent3);font-weight:700;">${fmtLKR(d.amount)}</td>
+        <td>${d.method === 'bank' ? '🏦 Bank' : '🔷 Crypto'}</td>
+        <td style="font-family:monospace;font-size:0.8rem;">${d.ref}</td>
+        <td><span class="badge ${sc}">${d.status}</span></td>
+        <td>${actions}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function approveDeposit(id) {
+    const deposits = Store.get('hm_deposits', []);
+    const dep = deposits.find(d => d.id === id);
+    if (!dep || dep.status !== 'pending') return;
+    dep.status = 'approved';
+    Store.set('hm_deposits', deposits);
+
+    // Credit user balance
+    const users = Store.get('hm_users', []);
+    const idx = users.findIndex(u => u.id === dep.userId);
+    if (idx !== -1) {
+      users[idx].balance += dep.amount;
+      users[idx].totalDeposits += dep.amount;
+
+      // Referral commission (20%)
+      if (users[idx].referredBy) {
+        const refIdx = users.findIndex(u => u.referralCode === users[idx].referredBy);
+        if (refIdx !== -1) {
+          const commission = dep.amount * 0.20;
+          users[refIdx].balance += commission;
+          users[refIdx].referralEarnings += commission;
+        }
+      }
+      Store.set('hm_users', users);
+    }
+    renderDeposits();
+    renderOverview();
+    showToast(`Deposit of ${fmtLKR(dep.amount)} approved! Balance updated.`, 'success');
+  }
+
+  function rejectDeposit(id) {
+    const deposits = Store.get('hm_deposits', []);
+    const dep = deposits.find(d => d.id === id);
+    if (!dep || dep.status !== 'pending') return;
+    dep.status = 'rejected';
+    Store.set('hm_deposits', deposits);
+    renderDeposits();
+    renderOverview();
+    showToast('Deposit rejected.', 'error');
+  }
+
+  /* ---- Withdrawals ---- */
+  function renderWithdrawals() {
+    const search = (document.getElementById('wd-search').value || '').toLowerCase();
+    const filter = document.getElementById('wd-filter').value;
+    let withdrawals = Store.get('hm_withdrawals', []);
+    if (filter !== 'all') withdrawals = withdrawals.filter(w => w.status === filter);
+    if (search) withdrawals = withdrawals.filter(w => w.username.toLowerCase().includes(search) || w.accNo.toLowerCase().includes(search));
+    withdrawals = withdrawals.sort((a,b) => new Date(b.date)-new Date(a.date));
+
+    const tbody = document.getElementById('withdrawals-table-body');
+    if (!withdrawals.length) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:24px;">No withdrawals found.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = withdrawals.map(w => {
+      const sc = w.status==='approved'?'badge-success':w.status==='pending'?'badge-warn':'badge-danger';
+      const actions = w.status === 'pending' ? `
+        <div class="action-group">
+          <button class="btn btn-green btn-sm" onclick="approveWithdrawal(${w.id})">✅ Approve</button>
+          <button class="btn btn-danger btn-sm" onclick="rejectWithdrawal(${w.id})">❌ Reject</button>
+        </div>` : `<span style="color:var(--text-muted);font-size:0.82rem;">${w.status}</span>`;
+      return `<tr>
+        <td style="font-size:0.82rem;">${w.date}</td>
+        <td><strong>${w.username}</strong></td>
+        <td style="color:var(--accent-warn);font-weight:700;">${fmtLKR(w.amount)}</td>
+        <td>${w.bank}</td>
+        <td style="font-family:monospace;font-size:0.8rem;">${w.accNo}</td>
+        <td>${w.holder}</td>
+        <td><span class="badge ${sc}">${w.status}</span></td>
+        <td>${actions}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function approveWithdrawal(id) {
+    const withdrawals = Store.get('hm_withdrawals', []);
+    const wd = withdrawals.find(w => w.id === id);
+    if (!wd || wd.status !== 'pending') return;
+    wd.status = 'approved';
+    Store.set('hm_withdrawals', withdrawals);
+    renderWithdrawals();
+    renderOverview();
+    showToast(`Withdrawal of ${fmtLKR(wd.amount)} approved!`, 'success');
+  }
+
+  function rejectWithdrawal(id) {
+    const withdrawals = Store.get('hm_withdrawals', []);
+    const wd = withdrawals.find(w => w.id === id);
+    if (!wd || wd.status !== 'pending') return;
+    // Refund balance
+    const users = Store.get('hm_users', []);
+    const idx = users.findIndex(u => u.id === wd.userId);
+    if (idx !== -1) {
+      users[idx].balance += wd.amount;
+      users[idx].totalWithdrawals -= wd.amount;
+      Store.set('hm_users', users);
+    }
+    wd.status = 'rejected';
+    Store.set('hm_withdrawals', withdrawals);
+    renderWithdrawals();
+    renderOverview();
+    showToast('Withdrawal rejected. Balance refunded.', 'error');
+  }
+
+  /* ---- Referral Tree ---- */
+  function renderReferralTree() {
+    const users = Store.get('hm_users', []);
+    const tree  = document.getElementById('referral-tree');
+    // Root users (no referrer)
+    const roots = users.filter(u => !u.referredBy);
+    tree.innerHTML = roots.map(u => buildTreeItem(u, users)).join('');
+  }
+
+  function buildTreeItem(user, allUsers) {
+    const children = allUsers.filter(u => u.referredBy === user.referralCode);
+    const childrenHtml = children.length ? `
+      <ul class="ref-children">
+        ${children.map(c => buildTreeItem(c, allUsers)).join('')}
+      </ul>` : '';
+    return `
+      <li>
+        <div class="ref-tree-item">
+          <div class="user-info">
+            <div class="avatar">${user.username.charAt(0).toUpperCase()}</div>
+            <div>
+              <div class="name">${user.username} ${user.role==='admin'?'<span class="badge badge-warn" style="font-size:0.65rem;">Admin</span>':''}</div>
+              <div class="code">Code: ${user.referralCode} | Referrals: ${user.referrals || 0}</div>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:0.85rem;font-weight:700;color:var(--accent3);">${fmtLKR(user.referralEarnings)}</div>
+            <div style="font-size:0.72rem;color:var(--text-muted);">Ref. Earnings</div>
+          </div>
+        </div>
+        ${childrenHtml}
+      </li>`;
+  }
+
+  /* ---- Modal Helpers ---- */
+  function closeModal(id) {
+    document.getElementById(id + '-modal').classList.remove('open');
+  }
+</script>
+</body>
+</html>

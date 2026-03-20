@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hill Miner — Online Auto Mining Platform</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* ---- Hero ---- */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+      padding: 80px 0 60px;
+    }
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 70% 60% at 50% 40%, rgba(0,229,255,0.07) 0%, transparent 65%),
+        radial-gradient(ellipse 50% 40% at 80% 70%, rgba(124,58,237,0.1) 0%, transparent 60%);
+      z-index: 0;
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+      position: relative;
+      z-index: 1;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(0,229,255,0.08);
+      border: 1px solid rgba(0,229,255,0.3);
+      border-radius: 20px;
+      padding: 6px 16px;
+      font-size: 0.8rem;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 20px;
+      letter-spacing: 0.5px;
+    }
+    .hero-title {
+      font-size: 3.5rem;
+      font-weight: 900;
+      line-height: 1.1;
+      margin-bottom: 20px;
+    }
+    .hero-title .highlight {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-subtitle {
+      font-size: 1.1rem;
+      color: var(--text-dim);
+      margin-bottom: 36px;
+      line-height: 1.7;
+    }
+    .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; }
+    .hero-stats {
+      display: flex;
+      gap: 28px;
+      margin-top: 40px;
+      flex-wrap: wrap;
+    }
+    .hero-stat { text-align: center; }
+    .hero-stat .val {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--accent);
+    }
+    .hero-stat .lbl { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* Hero visual */
+    .hero-visual {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+    }
+    .mining-orb {
+      width: 260px; height: 260px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, rgba(0,229,255,0.2), rgba(124,58,237,0.15), transparent 70%);
+      border: 2px solid rgba(0,229,255,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      animation: pulse 3s ease-in-out infinite;
+      box-shadow: 0 0 60px rgba(0,229,255,0.15), inset 0 0 60px rgba(124,58,237,0.1);
+    }
+    .mining-orb::before {
+      content: '';
+      position: absolute;
+      inset: -20px;
+      border-radius: 50%;
+      border: 1px solid rgba(0,229,255,0.1);
+      animation: spin 8s linear infinite;
+    }
+    .mining-orb::after {
+      content: '';
+      position: absolute;
+      inset: -40px;
+      border-radius: 50%;
+      border: 1px dashed rgba(124,58,237,0.15);
+      animation: spin 12s linear infinite reverse;
+    }
+    .orb-inner {
+      font-size: 5rem;
+      filter: drop-shadow(0 0 20px rgba(0,229,255,0.6));
+      animation: float 3s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100% { box-shadow: 0 0 60px rgba(0,229,255,0.15); } 50% { box-shadow: 0 0 100px rgba(0,229,255,0.3); } }
+    @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+
+    .live-ticker {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      width: 100%;
+      max-width: 320px;
+    }
+    .ticker-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(30,42,64,0.5);
+      font-size: 0.85rem;
+    }
+    .ticker-row:last-child { border-bottom: none; }
+    .ticker-name { color: var(--text-dim); font-weight: 600; }
+    .ticker-val { color: var(--accent3); font-weight: 700; }
+
+    /* ---- Features ---- */
+    .features { padding: 80px 0; }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 24px;
+    }
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      text-align: center;
+      transition: all var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      opacity: 0;
+      transition: opacity var(--transition);
+    }
+    .feature-card.c1::before { background: linear-gradient(90deg, var(--accent), #0099bb); }
+    .feature-card.c2::before { background: linear-gradient(90deg, var(--accent2), #5b21b6); }
+    .feature-card.c3::before { background: linear-gradient(90deg, var(--accent3), #059669); }
+    .feature-card.c4::before { background: linear-gradient(90deg, var(--accent-warn), #d97706); }
+    .feature-card:hover { transform: translateY(-6px); border-color: rgba(0,229,255,0.25); }
+    .feature-card:hover::before { opacity: 1; }
+    .feature-icon {
+      font-size: 2.5rem;
+      margin-bottom: 16px;
+      display: block;
+    }
+    .feature-card h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 10px; }
+    .feature-card p { font-size: 0.88rem; color: var(--text-muted); line-height: 1.6; }
+
+    /* ---- Mining Info ---- */
+    .mining-info { padding: 80px 0; background: var(--bg-secondary); }
+    .mining-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      align-items: center;
+    }
+    .info-list { list-style: none; }
+    .info-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .info-list li:last-child { border-bottom: none; }
+    .info-list .icon {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+    .info-list .icon.cyan   { background: rgba(0,229,255,0.12); }
+    .info-list .icon.purple { background: rgba(124,58,237,0.12); }
+    .info-list .icon.green  { background: rgba(16,185,129,0.12); }
+    .info-list .icon.warn   { background: rgba(245,158,11,0.12); }
+    .info-list .text strong { display: block; font-size: 0.95rem; font-weight: 700; margin-bottom: 2px; }
+    .info-list .text span   { font-size: 0.83rem; color: var(--text-muted); }
+
+    .mining-visual-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      text-align: center;
+    }
+    .profit-display {
+      background: linear-gradient(135deg, rgba(0,229,255,0.08), rgba(124,58,237,0.08));
+      border: 1px solid rgba(0,229,255,0.2);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 20px 0;
+    }
+    .profit-display .label { font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; }
+    .profit-display .value { font-size: 2rem; font-weight: 800; color: var(--accent3); margin: 6px 0; }
+    .profit-display .sub   { font-size: 0.8rem; color: var(--text-muted); }
+
+    /* ---- Stats Section ---- */
+    .stats-section { padding: 80px 0; }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+    }
+
+    /* ---- CTA ---- */
+    .cta-section {
+      padding: 80px 0;
+      background: linear-gradient(135deg, rgba(0,229,255,0.05), rgba(124,58,237,0.08));
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+    }
+    .cta-section h2 { font-size: 2.2rem; font-weight: 800; margin-bottom: 14px; }
+    .cta-section p  { color: var(--text-muted); margin-bottom: 32px; font-size: 1rem; }
+    .cta-actions { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+
+    /* ---- Telegram Section ---- */
+    .telegram-section { padding: 60px 0; text-align: center; }
+    .tg-buttons { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-top: 24px; }
+
+    @media (max-width: 900px) {
+      .hero-grid { grid-template-columns: 1fr; text-align: center; }
+      .hero-visual { display: none; }
+      .hero-actions { justify-content: center; }
+      .hero-stats { justify-content: center; }
+      .mining-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 600px) {
+      .hero-title { font-size: 2.4rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="bg-particles"></div>
+<div id="toast-container"></div>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="container nav-inner">
+    <a href="index.html" class="logo">
+      <div class="logo-icon">⛏</div>
+      Hill<span>Miner</span>
+    </a>
+    <div class="nav-links" id="nav-links">
+      <a href="index.html" class="active">Home</a>
+      <a href="#features">Features</a>
+      <a href="#mining-info">Mining</a>
+      <a href="https://t.me/+QzZRWBo6fQVmZWE1" target="_blank">Telegram</a>
+    </div>
+    <div class="nav-actions">
+      <a href="login.html" class="btn btn-secondary">Login</a>
+      <a href="register.html" class="btn btn-primary">Register</a>
+    </div>
+    <div class="hamburger" onclick="document.getElementById('nav-links').classList.toggle('open')">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="container">
+    <div class="hero-grid">
+      <div class="hero-content">
+        <div class="hero-badge">⚡ Auto Mining Platform &nbsp;|&nbsp; LKR Earnings</div>
+        <h1 class="hero-title">
+          Welcome to<br>
+          <span class="highlight">Hill Miner</span>
+        </h1>
+        <p class="hero-subtitle">
+          Sri Lanka's premier online auto mining platform. Deposit in LKR, earn daily profits, and grow your wealth with our transparent, secure mining simulation system.
+        </p>
+        <div class="hero-actions">
+          <a href="register.html" class="btn btn-primary btn-lg">🚀 Get Started</a>
+          <a href="login.html" class="btn btn-secondary btn-lg">🔑 Login</a>
+        </div>
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <div class="val" data-counter="1250" data-suffix="+">0+</div>
+            <div class="lbl">Active Miners</div>
+          </div>
+          <div class="hero-stat">
+            <div class="val" data-counter="8500000" data-prefix="LKR ">LKR 0</div>
+            <div class="lbl">Total Paid Out</div>
+          </div>
+          <div class="hero-stat">
+            <div class="val" data-counter="99" data-suffix="%">0%</div>
+            <div class="lbl">Uptime</div>
+          </div>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="mining-orb">
+          <div class="orb-inner">⛏</div>
+        </div>
+        <div class="live-ticker">
+          <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;">Live Rates</div>
+          <div class="ticker-row">
+            <span class="ticker-name">1 USDT</span>
+            <span class="ticker-val">LKR 310.00</span>
+          </div>
+          <div class="ticker-row">
+            <span class="ticker-name">1 ATOM</span>
+            <span class="ticker-val">LKR 579.70</span>
+          </div>
+          <div class="ticker-row">
+            <span class="ticker-name">1 MATIC</span>
+            <span class="ticker-val">LKR 29.85</span>
+          </div>
+          <div class="ticker-row">
+            <span class="ticker-name">Min Deposit</span>
+            <span class="ticker-val">LKR 500</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div class="container">
+    <div class="text-center">
+      <h2 class="section-title">Why Choose Hill Miner?</h2>
+      <p class="section-subtitle">Built for Sri Lankan investors — fast, transparent, and rewarding</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card c1">
+        <span class="feature-icon">🔒</span>
+        <h3>Secure Platform</h3>
+        <p>Your funds and data are protected with advanced security measures and IP-based duplicate prevention systems.</p>
+      </div>
+      <div class="feature-card c2">
+        <span class="feature-icon">📊</span>
+        <h3>Transparent Dashboard</h3>
+        <p>Real-time mining dashboard showing your balance, daily earnings, deposits, and withdrawal history at a glance.</p>
+      </div>
+      <div class="feature-card c3">
+        <span class="feature-icon">🤝</span>
+        <h3>Referral Rewards</h3>
+        <p>Earn 20% commission on every deposit made by users you refer. Build your network and multiply your income.</p>
+      </div>
+      <div class="feature-card c4">
+        <span class="feature-icon">💬</span>
+        <h3>Telegram Support</h3>
+        <p>24/7 customer support and an active community group on Telegram. Get help instantly whenever you need it.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section class="stats-section">
+  <div class="container">
+    <div class="stats-grid">
+      <div class="stat-card cyan">
+        <div class="stat-icon">👥</div>
+        <div class="stat-value" data-counter="1250" data-suffix="+">0</div>
+        <div class="stat-label">Total Users</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-icon">💰</div>
+        <div class="stat-value" data-counter="8500000" data-prefix="LKR ">0</div>
+        <div class="stat-label">Total Deposits</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-icon">📤</div>
+        <div class="stat-value" data-counter="6200000" data-prefix="LKR ">0</div>
+        <div class="stat-label">Total Withdrawals</div>
+      </div>
+      <div class="stat-card warn">
+        <div class="stat-icon">🔗</div>
+        <div class="stat-value" data-counter="3800" data-suffix="+">0</div>
+        <div class="stat-label">Total Referrals</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MINING INFO -->
+<section class="mining-info" id="mining-info">
+  <div class="container">
+    <div class="text-center">
+      <h2 class="section-title">How Mining Works</h2>
+      <p class="section-subtitle">Simple, automated, and profitable — start earning from day one</p>
+    </div>
+    <div class="mining-grid">
+      <ul class="info-list">
+        <li>
+          <div class="icon cyan">🤖</div>
+          <div class="text">
+            <strong>Mining Simulation System</strong>
+            <span>Our automated system simulates crypto mining and distributes daily profits to your account balance.</span>
+          </div>
+        </li>
+        <li>
+          <div class="icon green">📈</div>
+          <div class="text">
+            <strong>Daily Profit Display</strong>
+            <span>View your estimated daily earnings in real-time on your personal dashboard — always transparent.</span>
+          </div>
+        </li>
+        <li>
+          <div class="icon purple">💳</div>
+          <div class="text">
+            <strong>Minimum Deposit: LKR 500</strong>
+            <span>Start mining with as little as LKR 500 via bank transfer. Deposits are approved within 24 hours.</span>
+          </div>
+        </li>
+        <li>
+          <div class="icon warn">💸</div>
+          <div class="text">
+            <strong>Minimum Withdrawal: LKR 1,000</strong>
+            <span>Withdraw your earnings directly to your bank account. Withdrawals processed 10 AM – 8 PM daily.</span>
+          </div>
+        </li>
+        <li>
+          <div class="icon cyan">🔗</div>
+          <div class="text">
+            <strong>Referral Commission: 20%</strong>
+            <span>Earn 20% of every deposit from users you refer. Commissions are credited instantly.</span>
+          </div>
+        </li>
+      </ul>
+      <div class="mining-visual-box">
+        <div class="mining-ring" style="width:100px;height:100px;margin-bottom:20px;"></div>
+        <h3 style="font-size:1.1rem;margin-bottom:6px;">Auto Mining Active</h3>
+        <p style="font-size:0.83rem;color:var(--text-muted);margin-bottom:16px;">Your investment works 24/7</p>
+        <div class="profit-display">
+          <div class="label">Example Daily Profit</div>
+          <div class="value">LKR 25.00</div>
+          <div class="sub">On a LKR 5,000 deposit (0.5% daily)</div>
+        </div>
+        <div class="progress-bar-wrap" style="margin-bottom:8px;">
+          <div class="progress-bar-fill" style="width:72%;"></div>
+        </div>
+        <div style="font-size:0.78rem;color:var(--text-muted);">Mining efficiency: 72%</div>
+        <a href="register.html" class="btn btn-primary btn-block mt-3">Start Mining Now</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TELEGRAM -->
+<section class="telegram-section">
+  <div class="container">
+    <h2 class="section-title text-center">Join Our Community</h2>
+    <p class="section-subtitle text-center">Connect with thousands of miners and get instant support</p>
+    <div class="tg-buttons">
+      <a href="https://t.me/+QzZRWBo6fQVmZWE1" target="_blank" class="tg-btn tg-support">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.941z"/></svg>
+        Customer Service
+      </a>
+      <a href="https://t.me/+QzZRWBo6fQVmZWE1" target="_blank" class="tg-btn tg-community">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.941z"/></svg>
+        Community Group
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="container">
+    <h2>Ready to Start Mining?</h2>
+    <p>Join over 1,250 active miners and start earning daily profits in LKR today.</p>
+    <div class="cta-actions">
+      <a href="register.html" class="btn btn-primary btn-lg">🚀 Create Free Account</a>
+      <a href="login.html" class="btn btn-secondary btn-lg">🔑 Login to Dashboard</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+          <div class="logo-icon" style="width:32px;height:32px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:7px;display:flex;align-items:center;justify-content:center;">⛏</div>
+          <span style="font-size:1.1rem;font-weight:700;color:var(--accent);">HillMiner</span>
+        </div>
+        <p style="font-size:0.83rem;color:var(--text-muted);line-height:1.6;">Sri Lanka's trusted online auto mining platform. Earn daily profits in LKR with our transparent system.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Quick Links</h4>
+        <a href="index.html">Home</a>
+        <a href="register.html">Register</a>
+        <a href="login.html">Login</a>
+        <a href="dashboard.html">Dashboard</a>
+      </div>
+      <div class="footer-col">
+        <h4>Support</h4>
+        <a href="https://t.me/+QzZRWBo6fQVmZWE1" target="_blank">Telegram Support</a>
+        <a href="https://t.me/+QzZRWBo6fQVmZWE1" target="_blank">Telegram Community</a>
+        <a href="#" onclick="showModal('terms')">Terms &amp; Conditions</a>
+        <a href="https://t.me/+QzZRWBo6fQVmZWE1" target="_blank">Contact Us</a>
+      </div>
+      <div class="footer-col">
+        <h4>Mining Info</h4>
+        <a href="#">Min Deposit: LKR 500</a>
+        <a href="#">Min Withdraw: LKR 1,000</a>
+        <a href="#">Daily Profit: 0.5%</a>
+        <a href="#">Referral: 20%</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2025 Hill Miner. All rights reserved.</span>
+      <span>Powered by Hill Miner Platform</span>
+    </div>
+  </div>
+</footer>
+
+<!-- Terms Modal -->
+<div class="modal-overlay" id="terms-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('terms')">✕</button>
+    <h3>Terms &amp; Conditions</h3>
+    <div style="font-size:0.85rem;color:var(--text-dim);line-height:1.7;max-height:300px;overflow-y:auto;">
+      <p><strong>1. Eligibility:</strong> You must be 18+ to use Hill Miner.</p>
+      <p style="margin-top:10px;"><strong>2. Deposits:</strong> Minimum deposit is LKR 500 via bank transfer. All deposits require admin approval.</p>
+      <p style="margin-top:10px;"><strong>3. Withdrawals:</strong> Minimum withdrawal is LKR 1,000. Requests accepted 10:00 AM – 8:00 PM only.</p>
+      <p style="margin-top:10px;"><strong>4. Referrals:</strong> 20% commission on referred users' deposits. One account per IP address.</p>
+      <p style="margin-top:10px;"><strong>5. Risk:</strong> Mining simulation involves financial risk. Invest only what you can afford to lose.</p>
+      <p style="margin-top:10px;"><strong>6. Termination:</strong> Hill Miner reserves the right to block accounts violating these terms.</p>
+    </div>
+    <button class="btn btn-primary btn-block mt-3" onclick="closeModal('terms')">I Understand</button>
+  </div>
+</div>
+
+<script src="script.js"></script>
+<script>
+  function showModal(id) {
+    document.getElementById(id + '-modal').classList.add('open');
+  }
+  function closeModal(id) {
+    document.getElementById(id + '-modal').classList.remove('open');
+  }
+  // Redirect if already logged in
+  document.addEventListener('DOMContentLoaded', () => {
+    const u = getCurrentUser();
+    if (u) {
+      document.querySelector('.nav-actions').innerHTML = `
+        <a href="dashboard.html" class="btn btn-secondary">Dashboard</a>
+        <button class="btn btn-primary" onclick="logout()">Logout</button>
+      `;
+    }
+  });
+</script>
+</body>
+</html>
